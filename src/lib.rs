@@ -1,6 +1,5 @@
 use std::{
-    net::TcpStream,
-    io::{prelude::*, BufRead, BufReader},
+    net::TcpStream, io::{prelude::*, BufRead, BufReader},
     fs
 };
 
@@ -59,13 +58,19 @@ pub fn handle_stream(mut stream: TcpStream) {
     let buf = BufReader::new(&mut stream);
 
     let req_line = buf.lines().next().unwrap().unwrap();
+    let mut path_iter = req_line.split_whitespace();
 
-    let (status_code, status_message, body) = if req_line == "GET / HTTP/1.1" {
-        (200, String::from("OK"), fs::read_to_string(OK_HTML).unwrap())
-    } else {
-        (404, String::from("NOT_FOUND"), fs::read_to_string(NOT_FOUND_HTML).unwrap())
+    let method = path_iter.next().unwrap();
+    let path = path_iter.next().unwrap();
+
+    let (status_code, status_message, body) = match method {
+        "GET" => match path {
+            "/" => (200, String::from("OK"), fs::read_to_string(OK_HTML).unwrap()),
+            _ => (404, String::from("NOT_FOUND"), fs::read_to_string(NOT_FOUND_HTML).unwrap())
+        },
+        _ => (404, String::from("NOT_FOUND"), fs::read_to_string(NOT_FOUND_HTML).unwrap())
     };
-
+    
     let mut res = Response::new(status_code);
     res.set_status_message(status_message);
     res.set_body(body);
