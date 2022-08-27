@@ -1,6 +1,7 @@
 use std::{
     net::TcpStream, io::{prelude::*, BufRead, BufReader},
-    fs
+    fs,
+    thread, time::Duration
 };
 
 pub struct Response {
@@ -40,7 +41,7 @@ impl Response {
     pub fn get_response(&self) -> String {
         let mut res = String::from("");
         res.push_str(format!("{} {} {}", HTTP_VERSION, self.status_code, self.status_message).as_str());
-        
+
         for header in &self.headers {
             res.push_str(CRLF);
             res.push_str(header);
@@ -66,11 +67,15 @@ pub fn handle_stream(mut stream: TcpStream) {
     let (status_code, status_message, body) = match method {
         "GET" => match path {
             "/" => (200, String::from("OK"), fs::read_to_string(OK_HTML).unwrap()),
+            "/sleep" => {
+                thread::sleep(Duration::from_secs(3));
+                (200, String::from("OK"), fs::read_to_string(OK_HTML).unwrap())
+            },
             _ => (404, String::from("NOT_FOUND"), fs::read_to_string(NOT_FOUND_HTML).unwrap())
         },
         _ => (404, String::from("NOT_FOUND"), fs::read_to_string(NOT_FOUND_HTML).unwrap())
     };
-    
+
     let mut res = Response::new(status_code);
     res.set_status_message(status_message);
     res.set_body(body);
